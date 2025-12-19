@@ -1,21 +1,33 @@
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+
 export default async function handler(req, res) {
   try {
-    const response = await fetch("https://shortq.info/jadwalprediksi");
-    const html = await response.text();
+    const { data } = await axios.get('https://shortq.info/jadwalprediksi');
+    const $ = cheerio.load(data);
+    
+    let hasil = [];
+    let isPrediksiSection = false;
 
-    const scores = [];
-    const regex = /(\d+)\s*-\s*(\d+)/g;
-    let m;
+    // Ambil semua teks dari tag <p> atau <div> (sesuaikan dengan struktur webnya)
+    $('p, div').each((i, el) => {
+      const text = $(el).text().trim();
+      
+      // Tandai jika sudah masuk ke area "PREDIKSI SCORE"
+      if (text.includes("PREDIKSI SCORE BOLA")) {
+        isPrediksiSection = true;
+      }
 
-    while ((m = regex.exec(html)) !== null) {
-      scores.push(m[0]);
-    }
-
-    res.status(200).json({
-      total: scores.length,
-      prediksi_score: scores
+      // Jika di dalam section prediksi, ambil baris yang punya format skor (:)
+      if (isPrediksiSection && text.includes("VS") && text.includes(":")) {
+        hasil.push({
+          pertandingan: text
+        });
+      }
     });
-  } catch (e) {
-    res.status(500).json({ error: "Gagal ambil data" });
+
+    res.status(200).json({ status: 'success', data: hasil });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal mengambil data' });
   }
 }
