@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Prediksi Skor Bola</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-gray-800 p-6 rounded-xl shadow-lg border-b-4 border-blue-500">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-400"><i class="fas fa-futbol mr-3"></i>Prediksi Skor Bola</h1>
+                <p class="text-gray-400 mt-1" id="last-updated">Mengambil data...</p>
+            </div>
+            <button onclick="fetchData()" class="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                <i class="fas fa-sync-alt mr-2"></i> Refresh Data
+            </button>
+        </div>
+
+        <div id="loading" class="text-center py-20">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <p class="mt-4 text-xl">Sedang menyinkronkan data server...</p>
+        </div>
+
+        <div id="table-container" class="hidden overflow-x-auto bg-gray-800 rounded-xl shadow-2xl">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-700 text-blue-300 uppercase text-sm">
+                        <th class="px-6 py-4">Waktu (WIB)</th>
+                        <th class="px-6 py-4 text-right">Tim Home</th>
+                        <th class="px-6 py-4 text-center">Prediksi Skor</th>
+                        <th class="px-6 py-4">Tim Away</th>
+                    </tr>
+                </thead>
+                <tbody id="prediction-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('table-container');
+            const tbody = document.getElementById('prediction-body');
+            const lastUpdated = document.getElementById('last-updated');
+
+            // Reset view
+            loading.classList.remove('hidden');
+            container.classList.add('hidden');
+            tbody.innerHTML = '';
+
+            try {
+                // Panggil API Vercel Anda
+                const response = await fetch('/api/scrape');
+                const result = await response.json();
+
+                if (result.predictions && result.predictions.length > 0) {
+                    result.predictions.forEach(item => {
+                        const row = `
+                            <tr class="border-b border-gray-700 hover:bg-gray-750 transition duration-150">
+                                <td class="px-6 py-4 text-sm text-gray-400 font-mono">${item.waktu}</td>
+                                <td class="px-6 py-4 text-right font-bold text-lg">${item.home_team}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="bg-blue-900 text-blue-200 px-4 py-1 rounded-full text-xl font-black border border-blue-500">
+                                        ${item.skor_home} - ${item.skor_away}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-left font-bold text-lg">${item.away_team}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+
+                    lastUpdated.innerText = `Terakhir diperbarui: ${new Date().toLocaleString('id-ID')}`;
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center">Tidak ada data prediksi tersedia saat ini.</td></tr>';
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                tbody.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-400">Gagal mengambil data dari server. Pastikan API Vercel sudah aktif.</td></tr>';
+            } finally {
+                loading.classList.add('hidden');
+                container.classList.remove('hidden');
+            }
+        }
+
+        // Jalankan saat halaman dibuka
+        document.addEventListener('DOMContentLoaded', fetchData);
+    </script>
+
+    <style>
+        .bg-gray-750 { background-color: #2d3748; }
+    </style>
+</body>
+</html>
